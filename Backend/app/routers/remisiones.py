@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from .. import models, schemas, database
+from app import models, schemas, database  # 👈 importante usar app. en lugar de ..
 
 router = APIRouter(
     prefix="/remisiones",
@@ -18,3 +18,4 @@ def create_remision(remision: schemas.RemisionCreate, db: Session = Depends(data
 @router.get("/", response_model=list[schemas.Remision])
 def list_remisiones(db: Session = Depends(database.get_db)):
     return db.query(models.Remision).all()
+

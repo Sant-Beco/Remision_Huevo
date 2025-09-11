@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from .routers import remisiones, modulos, galpones
-from .database import Base, engine
+from app.routers import remisiones, modulos, galpones
+from app.database import Base, engine
 
 # Crear tablas en la BD
 Base.metadata.create_all(bind=engine)
