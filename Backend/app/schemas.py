@@ -5,20 +5,25 @@ from datetime import date
 class RemisionBase(BaseModel):
     fecha: date
     galpon_id: int
+    modulo_id: int
     huevo_incubable: int
     huevo_sucio: int
     huevo_roto: int
     huevo_extra: int
-    cajas: int
-    cubetas: int
+
 
 class RemisionCreate(RemisionBase):
     pass
 
+
 class Remision(RemisionBase):
     id: int
+    cajas: int   # 👈 calculados
+    cubetas: int
+
     class Config:
-        orm_mode = True
+        from_attributes = True
+
 
 
 # ===== Módulos =====
@@ -32,7 +37,7 @@ class ModuloCreate(ModuloBase):
 class Modulo(ModuloBase):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 # ===== Galpones =====
@@ -46,6 +51,6 @@ class GalponCreate(GalponBase):
 class Galpon(GalponBase):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 

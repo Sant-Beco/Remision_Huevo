@@ -29,11 +29,16 @@ class Remision(Base):
     id = Column(Integer, primary_key=True, index=True)
     fecha = Column(Date)
     galpon_id = Column(Integer, ForeignKey("galpones.id"))
+    modulo_id = Column(Integer, ForeignKey("modulos.id"))
     huevo_incubable = Column(Integer, default=0)
     huevo_sucio = Column(Integer, default=0)
     huevo_roto = Column(Integer, default=0)
     huevo_extra = Column(Integer, default=0)
-    cajas = Column(Integer, default=0)     # 360 huevos
-    cubetas = Column(Integer, default=0)   # 30 huevos
+
+    cajas = Column(Integer, default=0)
+    cubetas = Column(Integer, default=0)
 
     galpon = relationship("Galpon", back_populates="remisiones")
+    modulo = relationship("Modulo")
+
+
