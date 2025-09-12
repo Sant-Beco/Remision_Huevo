@@ -37,6 +37,7 @@ class Remision(Base):
 
     cajas = Column(Integer, default=0)
     cubetas = Column(Integer, default=0)
+    cubetas_sobrantes = Column(Integer, default=0)
 
     galpon = relationship("Galpon", back_populates="remisiones")
     modulo = relationship("Modulo")
