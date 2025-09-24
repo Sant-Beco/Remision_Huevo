@@ -1,53 +1,24 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app import models, schemas, database
+from app import schemas, database, crud
 
-router = APIRouter(
-    prefix="/remisiones",
-    tags=["remisiones"]
-)
+router = APIRouter(prefix="/remisiones", tags=["remisiones"])
 
 @router.post("/", response_model=schemas.Remision)
 def create_remision(remision: schemas.RemisionCreate, db: Session = Depends(database.get_db)):
-    total_huevos = remision.huevo_incubable
-
-    # 🔹 Cálculos
-    cajas = total_huevos // 360                # cajas completas
-    cubetas_totales = total_huevos // 30       # todas las cubetas
-    cubetas_sobrantes = (total_huevos % 360) // 30  # cubetas que no completan caja
-
-    # Crear objeto Remisión con los 3 campos
-    db_remision = models.Remision(
-        **remision.dict(),
-        cajas=cajas,
-        cubetas=cubetas_totales,
-        cubetas_sobrantes=cubetas_sobrantes
-    )
-
-    db.add(db_remision)
-    db.commit()
-    db.refresh(db_remision)
-    return db_remision
-
-    # 🥚 Calcular cajas y cubetas a partir de huevo_incubable
-    total_huevos = remision.huevo_incubable
-    cajas = total_huevos // 360       # 1 caja = 360 huevos
-    cubetas = total_huevos // 30  # 1 cubeta = 30 huevos
-
-    # Crear objeto Remisión con valores calculados
-    db_remision = models.Remision(
-        **remision.dict(),
-        cajas=cajas,
-        cubetas=cubetas
-    )
-
-    db.add(db_remision)
-    db.commit()
-    db.refresh(db_remision)
-    return db_remision
-
-
+    return crud.create_remision(db, remision)
 
 @router.get("/", response_model=list[schemas.Remision])
-def list_remisiones(db: Session = Depends(database.get_db)):
-    return db.query(models.Remision).all()
+def list_remisiones(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
+    return crud.list_remisiones(db, skip=skip, limit=limit)
+
+@router.get("/summary")
+def daily_summary(fecha: str = Query(..., description="YYYY-MM-DD"), modulo_id: int | None = None, db: Session = Depends(database.get_db)):
+    from datetime import datetime
+    try:
+        d = datetime.fromisoformat(fecha).date()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Fecha inválida (usar YYYY-MM-DD)")
+    summary = crud.get_daily_summary(db, d, modulo_id)
+    return {k: int(v or 0) for k, v in zip(["incubable","sucio","roto","extra","total_huevos","cajas","cubetas","cubetas_sobrantes"], summary)}
+

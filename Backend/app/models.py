@@ -1,45 +1,59 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, func
 from sqlalchemy.orm import relationship
 from .database import Base
 
 class Modulo(Base):
     __tablename__ = "modulos"
-
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String(50), unique=True, index=True)  # ej: 100, 200, 600
-    estado = Column(String(20), default="produccion")  # produccion / inactivo
-
+    nombre = Column(String(50), unique=True, index=True)  # ej: "100"
+    estado = Column(String(20), default="produccion")
     galpones = relationship("Galpon", back_populates="modulo")
-
 
 class Galpon(Base):
     __tablename__ = "galpones"
-
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String(50), index=True)  # ej: 101, 102, 601
+    nombre = Column(String(50), index=True)  # ej: "101"
     modulo_id = Column(Integer, ForeignKey("modulos.id"))
-
     modulo = relationship("Modulo", back_populates="galpones")
     remisiones = relationship("Remision", back_populates="galpon")
 
-
 class Remision(Base):
     __tablename__ = "remisiones"
-
     id = Column(Integer, primary_key=True, index=True)
-    fecha = Column(Date)
+
+    # identificadores / fechas
+    numero_remision = Column(Integer, unique=True, index=True, nullable=True)  # consecutivo físico
+    fecha = Column(Date, nullable=False)                # fecha de remisión
+    fecha_produccion = Column(Date, nullable=True)      # fecha de producción (opcional)
+
+    # relaciones
     galpon_id = Column(Integer, ForeignKey("galpones.id"))
     modulo_id = Column(Integer, ForeignKey("modulos.id"))
+
+    # conteos reportados por el operario
     huevo_incubable = Column(Integer, default=0)
     huevo_sucio = Column(Integer, default=0)
     huevo_roto = Column(Integer, default=0)
     huevo_extra = Column(Integer, default=0)
 
-    cajas = Column(Integer, default=0)
-    cubetas = Column(Integer, default=0)
-    cubetas_sobrantes = Column(Integer, default=0)
+    # totales / empaques (guardados para auditoría)
+    total_huevos = Column(Integer, default=0)
+    cajas = Column(Integer, default=0)               # cajas completas (según incubable)
+    cubetas = Column(Integer, default=0)             # cubetas totales (según incubable)
+    cubetas_sobrantes = Column(Integer, default=0)   # cubetas que no completan caja
+
+    # info operativa
+    observaciones = Column(String(255), nullable=True)
+    despachado_por = Column(String(100), nullable=True)
+    recibido_por = Column(String(100), nullable=True)
+    numero_sello = Column(String(50), nullable=True)
+
+    # auditoría
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     galpon = relationship("Galpon", back_populates="remisiones")
     modulo = relationship("Modulo")
+
 
 
