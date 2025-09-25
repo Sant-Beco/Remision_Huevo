@@ -1,3 +1,4 @@
+# app/models.py
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, DateTime, func
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -15,45 +16,49 @@ class Galpon(Base):
     nombre = Column(String(50), index=True)  # ej: "101"
     modulo_id = Column(Integer, ForeignKey("modulos.id"))
     modulo = relationship("Modulo", back_populates="galpones")
-    remisiones = relationship("Remision", back_populates="galpon")
+    remision_detalles = relationship("RemisionDetalle", back_populates="galpon")
 
 class Remision(Base):
     __tablename__ = "remisiones"
     id = Column(Integer, primary_key=True, index=True)
 
-    # identificadores / fechas
-    numero_remision = Column(Integer, unique=True, index=True, nullable=True)  # consecutivo físico
-    fecha = Column(Date, nullable=False)                # fecha de remisión
-    fecha_produccion = Column(Date, nullable=True)      # fecha de producción (opcional)
+    numero_remision = Column(Integer, unique=True, index=True, nullable=True)  # asignaremos con id
+    fecha = Column(Date, nullable=False)
+    fecha_produccion = Column(Date, nullable=True)
 
-    # relaciones
-    galpon_id = Column(Integer, ForeignKey("galpones.id"))
-    modulo_id = Column(Integer, ForeignKey("modulos.id"))
-
-    # conteos reportados por el operario
-    huevo_incubable = Column(Integer, default=0)
-    huevo_sucio = Column(Integer, default=0)
-    huevo_roto = Column(Integer, default=0)
-    huevo_extra = Column(Integer, default=0)
-
-    # totales / empaques (guardados para auditoría)
+    # cabecera (sin galpon directo: los galpones van en detalles)
     total_huevos = Column(Integer, default=0)
-    cajas = Column(Integer, default=0)               # cajas completas (según incubable)
-    cubetas = Column(Integer, default=0)             # cubetas totales (según incubable)
-    cubetas_sobrantes = Column(Integer, default=0)   # cubetas que no completan caja
+    cajas = Column(Integer, default=0)
+    cubetas = Column(Integer, default=0)
+    cubetas_sobrantes = Column(Integer, default=0)
 
-    # info operativa
     observaciones = Column(String(255), nullable=True)
     despachado_por = Column(String(100), nullable=True)
     recibido_por = Column(String(100), nullable=True)
     numero_sello = Column(String(50), nullable=True)
 
-    # auditoría
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    galpon = relationship("Galpon", back_populates="remisiones")
-    modulo = relationship("Modulo")
+    detalles = relationship("RemisionDetalle", back_populates="remision", cascade="all, delete-orphan")
+
+
+class RemisionDetalle(Base):
+    __tablename__ = "remision_detalles"
+    id = Column(Integer, primary_key=True, index=True)
+    remision_id = Column(Integer, ForeignKey("remisiones.id", ondelete="CASCADE"))
+    galpon_id = Column(Integer, ForeignKey("galpones.id"))
+    modulo_id = Column(Integer, ForeignKey("modulos.id"))
+
+    huevo_incubable = Column(Integer, default=0)
+    huevo_sucio = Column(Integer, default=0)
+    huevo_roto = Column(Integer, default=0)
+    huevo_extra = Column(Integer, default=0)
+
+    remision = relationship("Remision", back_populates="detalles")
+    galpon = relationship("Galpon", back_populates="remision_detalles")
+    # modulo relationship no es estrictamente necesaria, pero puedes añadirla:
+    # modulo = relationship("Modulo")
 
 
 

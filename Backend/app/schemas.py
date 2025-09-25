@@ -1,38 +1,50 @@
+# app/schemas.py
 from pydantic import BaseModel, Field
 from datetime import date, datetime
+from typing import List, Optional
 
-class RemisionBase(BaseModel):
-    fecha: date
-    fecha_produccion: date | None = None
+class RemisionDetalleBase(BaseModel):
     galpon_id: int
-    modulo_id: int
+    modulo_id: Optional[int] = None
     huevo_incubable: int = Field(ge=0)
     huevo_sucio: int = Field(ge=0)
     huevo_roto: int = Field(ge=0)
     huevo_extra: int = Field(ge=0)
-    observaciones: str | None = None
-    despachado_por: str | None = None
-    recibido_por: str | None = None
-    numero_sello: str | None = None
+
+class RemisionDetalleCreate(RemisionDetalleBase):
+    pass
+
+class RemisionDetalle(RemisionDetalleBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class RemisionBase(BaseModel):
+    fecha: date
+    fecha_produccion: Optional[date] = None
+    observaciones: Optional[str] = None
+    despachado_por: Optional[str] = None
+    recibido_por: Optional[str] = None
+    numero_sello: Optional[str] = None
 
 class RemisionCreate(RemisionBase):
-    pass
+    detalles: List[RemisionDetalleCreate]
 
 class Remision(RemisionBase):
     id: int
-    numero_remision: int | None
+    numero_remision: Optional[int]
     total_huevos: int
     cajas: int
     cubetas: int
     cubetas_sobrantes: int
+    detalles: List[RemisionDetalle]
     created_at: datetime
     updated_at: datetime
 
     class Config:
         from_attributes = True
 
-
-# Keep Modulo/Galpon schemas as you already have, add from_attributes=True
+# Modulo / Galpon schemas (iguales que antes)
 class ModuloBase(BaseModel):
     nombre: str
     estado: str = "produccion"
@@ -50,5 +62,6 @@ class Galpon(GalponBase):
     id: int
     class Config:
         from_attributes = True
+
 
 
