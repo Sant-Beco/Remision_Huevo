@@ -22,4 +22,4 @@ def daily_summary(fecha: str = Query(..., description="YYYY-MM-DD"), modulo_id: 
         raise HTTPException(status_code=400, detail="Fecha inválida (usar YYYY-MM-DD)")
     summary = crud.get_daily_summary(db, d, modulo_id)
     return {k: int(v or 0) for k, v in zip(["incubable","sucio","roto","extra","total_huevos","cajas","cubetas","cubetas_sobrantes"], summary)}
-
+    
