@@ -64,4 +64,13 @@ class Galpon(GalponBase):
         from_attributes = True
 
 
+class DailySummary(BaseModel):
+    incubable: int
+    sucio: int
+    roto: int
+    extra: int
+    total_huevos: int
+    cajas: int
+    cubetas: int
+    cubetas_sobrantes: int
 

@@ -1,7 +1,7 @@
 # app/crud.py
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException
 from app import models, schemas
 
@@ -103,10 +103,78 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
         raise HTTPException(status_code=500, detail=f"DB error: {str(e)}")
 
 def list_remisiones(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Remision).offset(skip).limit(limit).all()
+    return (
+        db.query(models.Remision)
+        .options(joinedload(models.Remision.detalles))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 def get_remision(db: Session, remision_id: int):
-    return db.query(models.Remision).filter(models.Remision.id == remision_id).first()
+    return (
+        db.query(models.Remision)
+        .options(joinedload(models.Remision.detalles))
+        .filter(models.Remision.id == remision_id)
+        .first()
+    )
+
+def update_remision(db: Session, remision_id: int, remision: schemas.RemisionCreate):
+    db_rem = get_remision(db, remision_id)
+    if not db_rem:
+        return None
+
+    # actualizar cabecera
+    db_rem.fecha = remision.fecha
+    db_rem.fecha_produccion = remision.fecha_produccion
+    db_rem.observaciones = remision.observaciones
+    db_rem.despachado_por = remision.despachado_por
+    db_rem.recibido_por = remision.recibido_por
+    db_rem.numero_sello = remision.numero_sello
+
+    # limpiar detalles
+    db_rem.detalles.clear()
+    total_incubable = 0
+    total_huevos = 0
+
+    for d in remision.detalles:
+        gal = db.query(models.Galpon).filter(models.Galpon.id == d.galpon_id).first()
+        if not gal:
+            raise HTTPException(status_code=400, detail=f"Galpón {d.galpon_id} no existe")
+        detalle = models.RemisionDetalle(
+            remision_id=db_rem.id,
+            galpon_id=d.galpon_id,
+            modulo_id=gal.modulo_id,
+            huevo_incubable=d.huevo_incubable,
+            huevo_sucio=d.huevo_sucio,
+            huevo_roto=d.huevo_roto,
+            huevo_extra=d.huevo_extra,
+        )
+        db_rem.detalles.append(detalle)
+        total_incubable += d.huevo_incubable
+        total_huevos += d.huevo_incubable + d.huevo_sucio + d.huevo_roto + d.huevo_extra
+
+    # recalcular totales
+    db_rem.total_huevos = total_huevos
+    db_rem.cajas = total_incubable // 360
+    db_rem.cubetas = total_incubable // 30
+    db_rem.cubetas_sobrantes = (total_incubable % 360) // 30
+
+    db.commit()
+    db.refresh(db_rem)
+    return db_rem
+
+
+def delete_remision(db: Session, remision_id: int):
+    db_rem = get_remision(db, remision_id)
+    if not db_rem:
+        return None
+    db.delete(db_rem)
+    db.commit()
+    return True
+
+
+
 
 def get_daily_summary(db: Session, fecha, modulo_id: int | None = None):
     q = db.query(
