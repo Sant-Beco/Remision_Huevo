@@ -21,12 +21,16 @@ class Galpon(Base):
 class Remision(Base):
     __tablename__ = "remisiones"
     id = Column(Integer, primary_key=True, index=True)
-
-    numero_remision = Column(Integer, unique=True, index=True, nullable=True)  # asignaremos con id
+    numero_remision = Column(Integer, unique=True, index=True, nullable=True)
     fecha = Column(Date, nullable=False)
     fecha_produccion = Column(Date, nullable=True)
 
-    # cabecera (sin galpon directo: los galpones van en detalles)
+    # 🟢 Totales por tipo de huevo
+    huevo_incubable = Column(Integer, default=0)
+    huevo_sucio = Column(Integer, default=0)
+    huevo_roto = Column(Integer, default=0)
+    huevo_extra = Column(Integer, default=0)
+
     total_huevos = Column(Integer, default=0)
     cajas = Column(Integer, default=0)
     cubetas = Column(Integer, default=0)
@@ -41,6 +45,7 @@ class Remision(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     detalles = relationship("RemisionDetalle", back_populates="remision", cascade="all, delete-orphan")
+
 
 
 class RemisionDetalle(Base):

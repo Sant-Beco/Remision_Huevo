@@ -33,6 +33,10 @@ class RemisionCreate(RemisionBase):
 class Remision(RemisionBase):
     id: int
     numero_remision: Optional[int]
+    huevo_incubable: int
+    huevo_sucio: int
+    huevo_roto: int
+    huevo_extra: int
     total_huevos: int
     cajas: int
     cubetas: int
@@ -43,6 +47,7 @@ class Remision(RemisionBase):
 
     class Config:
         from_attributes = True
+
 
 # Modulo / Galpon schemas (iguales que antes)
 class ModuloBase(BaseModel):
