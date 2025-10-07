@@ -43,7 +43,6 @@ def get_next_numero_remision(db: Session):
     current = db.query(func.max(models.Remision.numero_remision)).scalar() or 0
     return int(current) + 1
 
-
 def create_remision(db: Session, remision: schemas.RemisionCreate):
     if not remision.detalles or len(remision.detalles) == 0:
         raise HTTPException(status_code=400, detail="La remisión debe tener al menos un detalle")
@@ -62,6 +61,7 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
 
     total_incubable = total_sucio = total_roto = total_extra = total_huevos = 0
 
+    # 🔁 Recorremos detalles
     for d in remision.detalles:
         gal = db.query(models.Galpon).filter(models.Galpon.id == d.galpon_id).first()
         if not gal:
@@ -83,21 +83,21 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
         )
         db.add(detalle)
 
-        # acumular totales
+        # Acumular totales
         total_incubable += d.huevo_incubable
         total_sucio += d.huevo_sucio
         total_roto += d.huevo_roto
         total_extra += d.huevo_extra
         total_huevos += d.huevo_incubable + d.huevo_sucio + d.huevo_roto + d.huevo_extra
 
-    # guardar totales en remisión
+    # Totales finales
     db_rem.huevo_incubable = total_incubable
     db_rem.huevo_sucio = total_sucio
     db_rem.huevo_roto = total_roto
     db_rem.huevo_extra = total_extra
     db_rem.total_huevos = total_huevos
 
-    # cálculo de empaques
+    # 🧮 Empaques
     db_rem.cajas = total_incubable // 360
     db_rem.cubetas = total_incubable // 30
     db_rem.cubetas_sobrantes = (total_incubable % 360) // 30
