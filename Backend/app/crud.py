@@ -109,7 +109,7 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
     except IntegrityError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al guardar remisión: {str(e)}")
-
+    
 
 def list_remisiones(db: Session, skip: int = 0, limit: int = 100):
     return (
