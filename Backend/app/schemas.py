@@ -7,8 +7,8 @@ class RemisionDetalleBase(BaseModel):
     galpon_id: int
     modulo_id: Optional[int] = None
     huevo_incubable: int = Field(ge=0)
-    huevo_sucio: int = Field(ge=0)
-    huevo_roto: int = Field(ge=0)
+    total_sucio: int = Field(ge=0)
+    total_roto: int = Field(ge=0)
     huevo_extra: int = Field(ge=0)
 
 class RemisionDetalleCreate(RemisionDetalleBase):
@@ -34,9 +34,9 @@ class Remision(RemisionBase):
     id: int
     numero_remision: Optional[int]
     huevo_incubable: int
-    huevo_sucio: int
-    huevo_roto: int
-    huevo_extra: int
+    total_sucio: int
+    total_roto: int
+    total_extra: int
     total_huevos: int
     cajas: int
     cubetas: int

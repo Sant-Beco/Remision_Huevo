@@ -77,27 +77,27 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
             galpon_id=d.galpon_id,
             modulo_id=gal.modulo_id,
             huevo_incubable=d.huevo_incubable,
-            huevo_sucio=d.huevo_sucio,
-            huevo_roto=d.huevo_roto,
+            total_sucio=d.total_sucio,
+            total_roto=d.total_roto,
             huevo_extra=d.huevo_extra,
         )
         db.add(detalle)
 
         # Acumular totales
         total_incubable += d.huevo_incubable
-        total_sucio += d.huevo_sucio
-        total_roto += d.huevo_roto
+        total_sucio += d.total_sucio
+        total_roto += d.total_roto
         total_extra += d.huevo_extra
-        total_huevos += d.huevo_incubable + d.huevo_sucio + d.huevo_roto + d.huevo_extra
+        total_huevos += d.huevo_incubable + d.total_sucio + d.total_roto + d.huevo_extra
 
     # Totales finales
     db_rem.huevo_incubable = total_incubable
-    db_rem.huevo_sucio = total_sucio
+    db_rem.total_sucio = total_sucio
     db_rem.huevo_roto = total_roto
     db_rem.huevo_extra = total_extra
     db_rem.total_huevos = total_huevos
 
-    # 🧮 Empaques
+    # Empaques
     db_rem.cajas = total_incubable // 360
     db_rem.cubetas = total_incubable // 30
     db_rem.cubetas_sobrantes = (total_incubable % 360) // 30
@@ -156,20 +156,20 @@ def update_remision(db: Session, remision_id: int, remision: schemas.RemisionCre
             galpon_id=d.galpon_id,
             modulo_id=gal.modulo_id,
             huevo_incubable=d.huevo_incubable,
-            huevo_sucio=d.huevo_sucio,
+            total_sucio=d.total_sucio,
             huevo_roto=d.huevo_roto,
             huevo_extra=d.huevo_extra,
         )
         db.add(detalle)
 
         total_incubable += d.huevo_incubable
-        total_sucio += d.huevo_sucio
+        total_sucio += d.total_sucio
         total_roto += d.huevo_roto
         total_extra += d.huevo_extra
-        total_huevos += d.huevo_incubable + d.huevo_sucio + d.huevo_roto + d.huevo_extra
+        total_huevos += d.huevo_incubable + d.total_sucio + d.huevo_roto + d.huevo_extra
 
     db_rem.huevo_incubable = total_incubable
-    db_rem.huevo_sucio = total_sucio
+    db_rem.total_sucio = total_sucio
     db_rem.huevo_roto = total_roto
     db_rem.huevo_extra = total_extra
     db_rem.total_huevos = total_huevos
@@ -194,7 +194,7 @@ def delete_remision(db: Session, remision_id: int):
 def get_daily_summary(db: Session, fecha, modulo_id: int | None = None):
     q = db.query(
         func.sum(models.RemisionDetalle.huevo_incubable).label("incubable"),
-        func.sum(models.RemisionDetalle.huevo_sucio).label("sucio"),
+        func.sum(models.RemisionDetalle.total_sucio).label("sucio"),
         func.sum(models.RemisionDetalle.huevo_roto).label("roto"),
         func.sum(models.RemisionDetalle.huevo_extra).label("extra"),
         func.sum(models.Remision.total_huevos).label("total_huevos"),

@@ -25,11 +25,10 @@ class Remision(Base):
     fecha = Column(Date, nullable=False)
     fecha_produccion = Column(Date, nullable=True)
 
-    # 🟢 Totales por tipo de huevo
     huevo_incubable = Column(Integer, default=0)
-    huevo_sucio = Column(Integer, default=0)
-    huevo_roto = Column(Integer, default=0)
-    huevo_extra = Column(Integer, default=0)
+    total_sucio = Column(Integer, default=0)
+    total_roto = Column(Integer, default=0)
+    total_extra = Column(Integer, default=0)
 
     total_huevos = Column(Integer, default=0)
     cajas = Column(Integer, default=0)
@@ -47,7 +46,6 @@ class Remision(Base):
     detalles = relationship("RemisionDetalle", back_populates="remision", cascade="all, delete-orphan")
 
 
-
 class RemisionDetalle(Base):
     __tablename__ = "remision_detalles"
     id = Column(Integer, primary_key=True, index=True)
@@ -56,14 +54,9 @@ class RemisionDetalle(Base):
     modulo_id = Column(Integer, ForeignKey("modulos.id"))
 
     huevo_incubable = Column(Integer, default=0)
-    huevo_sucio = Column(Integer, default=0)
-    huevo_roto = Column(Integer, default=0)
+    total_sucio = Column(Integer, default=0)
+    total_roto = Column(Integer, default=0)
     huevo_extra = Column(Integer, default=0)
 
     remision = relationship("Remision", back_populates="detalles")
     galpon = relationship("Galpon", back_populates="remision_detalles")
-    # modulo relationship no es estrictamente necesaria, pero puedes añadirla:
-    # modulo = relationship("Modulo")
-
-
-
