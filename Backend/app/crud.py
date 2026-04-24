@@ -43,6 +43,7 @@ def get_next_numero_remision(db: Session):
     current = db.query(func.max(models.Remision.numero_remision)).scalar() or 0
     return int(current) + 1
 
+
 def create_remision(db: Session, remision: schemas.RemisionCreate):
     if not remision.detalles or len(remision.detalles) == 0:
         raise HTTPException(status_code=400, detail="La remisión debe tener al menos un detalle")
@@ -53,7 +54,7 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
         observaciones=remision.observaciones,
         despachado_por=remision.despachado_por,
         recibido_por=remision.recibido_por,
-        numero_sello=remision.numero_sello
+        numero_sello=remision.numero_sello,
     )
     db.add(db_rem)
     db.flush()  # para obtener id
@@ -61,7 +62,6 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
 
     total_incubable = total_sucio = total_roto = total_extra = total_huevos = 0
 
-    # 🔁 Recorremos detalles
     for d in remision.detalles:
         gal = db.query(models.Galpon).filter(models.Galpon.id == d.galpon_id).first()
         if not gal:
@@ -70,7 +70,10 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
 
         if d.modulo_id is not None and gal.modulo_id != d.modulo_id:
             db.rollback()
-            raise HTTPException(status_code=400, detail=f"Galpón {d.galpon_id} no pertenece al módulo {d.modulo_id}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Galpón {d.galpon_id} no pertenece al módulo {d.modulo_id}",
+            )
 
         detalle = models.RemisionDetalle(
             remision_id=db_rem.id,
@@ -78,29 +81,28 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
             modulo_id=gal.modulo_id,
             huevo_incubable=d.huevo_incubable,
             total_sucio=d.total_sucio,
-            total_roto=d.total_roto,
+            total_roto=d.total_roto,       # ✅ CORREGIDO: era d.huevo_roto (campo inexistente)
             huevo_extra=d.huevo_extra,
         )
         db.add(detalle)
 
-        # Acumular totales
         total_incubable += d.huevo_incubable
-        total_sucio += d.total_sucio
-        total_roto += d.total_roto
-        total_extra += d.huevo_extra
-        total_huevos += d.huevo_incubable + d.total_sucio + d.total_roto + d.huevo_extra
+        total_sucio     += d.total_sucio
+        total_roto      += d.total_roto    # ✅ CORREGIDO: era d.huevo_roto
+        total_extra     += d.huevo_extra
+        total_huevos    += d.huevo_incubable + d.total_sucio + d.total_roto + d.huevo_extra
 
-    # Totales finales
-    db_rem.huevo_incubable = total_incubable
-    db_rem.total_sucio = total_sucio
-    db_rem.huevo_roto = total_roto
-    db_rem.huevo_extra = total_extra
-    db_rem.total_huevos = total_huevos
+    # Totales en cabecera
+    db_rem.huevo_incubable  = total_incubable
+    db_rem.total_sucio      = total_sucio
+    db_rem.total_roto       = total_roto   # ✅ CORREGIDO: era db_rem.huevo_roto (columna inexistente)
+    db_rem.total_extra      = total_extra
+    db_rem.total_huevos     = total_huevos
 
     # Empaques
-    db_rem.cajas = total_incubable // 360
-    db_rem.cubetas = total_incubable // 30
-    db_rem.cubetas_sobrantes = (total_incubable % 360) // 30
+    db_rem.cajas              = total_incubable // 360
+    db_rem.cubetas            = total_incubable // 30
+    db_rem.cubetas_sobrantes  = (total_incubable % 360) // 30
 
     try:
         db.commit()
@@ -109,7 +111,7 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
     except IntegrityError as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al guardar remisión: {str(e)}")
-    
+
 
 def list_remisiones(db: Session, skip: int = 0, limit: int = 100):
     return (
@@ -135,14 +137,17 @@ def update_remision(db: Session, remision_id: int, remision: schemas.RemisionCre
     if not db_rem:
         return None
 
-    db_rem.fecha = remision.fecha
+    db_rem.fecha            = remision.fecha
     db_rem.fecha_produccion = remision.fecha_produccion
-    db_rem.observaciones = remision.observaciones
-    db_rem.despachado_por = remision.despachado_por
-    db_rem.recibido_por = remision.recibido_por
-    db_rem.numero_sello = remision.numero_sello
+    db_rem.observaciones    = remision.observaciones
+    db_rem.despachado_por   = remision.despachado_por
+    db_rem.recibido_por     = remision.recibido_por
+    db_rem.numero_sello     = remision.numero_sello
 
-    db.query(models.RemisionDetalle).filter(models.RemisionDetalle.remision_id == db_rem.id).delete()
+    # Eliminar detalles anteriores
+    db.query(models.RemisionDetalle).filter(
+        models.RemisionDetalle.remision_id == db_rem.id
+    ).delete()
 
     total_incubable = total_sucio = total_roto = total_extra = total_huevos = 0
 
@@ -157,25 +162,25 @@ def update_remision(db: Session, remision_id: int, remision: schemas.RemisionCre
             modulo_id=gal.modulo_id,
             huevo_incubable=d.huevo_incubable,
             total_sucio=d.total_sucio,
-            huevo_roto=d.huevo_roto,
+            total_roto=d.total_roto,       # ✅ CORREGIDO: era huevo_roto=d.huevo_roto (campo inexistente en schema y modelo)
             huevo_extra=d.huevo_extra,
         )
         db.add(detalle)
 
         total_incubable += d.huevo_incubable
-        total_sucio += d.total_sucio
-        total_roto += d.huevo_roto
-        total_extra += d.huevo_extra
-        total_huevos += d.huevo_incubable + d.total_sucio + d.huevo_roto + d.huevo_extra
+        total_sucio     += d.total_sucio
+        total_roto      += d.total_roto    # ✅ CORREGIDO: era d.huevo_roto
+        total_extra     += d.huevo_extra
+        total_huevos    += d.huevo_incubable + d.total_sucio + d.total_roto + d.huevo_extra  # ✅ CORREGIDO
 
-    db_rem.huevo_incubable = total_incubable
-    db_rem.total_sucio = total_sucio
-    db_rem.huevo_roto = total_roto
-    db_rem.huevo_extra = total_extra
-    db_rem.total_huevos = total_huevos
-    db_rem.cajas = total_incubable // 360
-    db_rem.cubetas = total_incubable // 30
-    db_rem.cubetas_sobrantes = (total_incubable % 360) // 30
+    db_rem.huevo_incubable  = total_incubable
+    db_rem.total_sucio      = total_sucio
+    db_rem.total_roto       = total_roto   # ✅ CORREGIDO: era db_rem.huevo_roto
+    db_rem.total_extra      = total_extra
+    db_rem.total_huevos     = total_huevos
+    db_rem.cajas              = total_incubable // 360
+    db_rem.cubetas            = total_incubable // 30
+    db_rem.cubetas_sobrantes  = (total_incubable % 360) // 30
 
     db.commit()
     db.refresh(db_rem)
@@ -192,21 +197,22 @@ def delete_remision(db: Session, remision_id: int):
 
 
 def get_daily_summary(db: Session, fecha, modulo_id: int | None = None):
-    q = db.query(
-        func.sum(models.RemisionDetalle.huevo_incubable).label("incubable"),
-        func.sum(models.RemisionDetalle.total_sucio).label("sucio"),
-        func.sum(models.RemisionDetalle.huevo_roto).label("roto"),
-        func.sum(models.RemisionDetalle.huevo_extra).label("extra"),
-        func.sum(models.Remision.total_huevos).label("total_huevos"),
-        func.sum(models.Remision.cajas).label("cajas"),
-        func.sum(models.Remision.cubetas).label("cubetas"),
-        func.sum(models.Remision.cubetas_sobrantes).label("cubetas_sobrantes"),
-    ).join(models.Remision, models.Remision.id == models.RemisionDetalle.remision_id)\
-     .filter(models.Remision.fecha == fecha)
+    q = (
+        db.query(
+            func.sum(models.RemisionDetalle.huevo_incubable).label("incubable"),
+            func.sum(models.RemisionDetalle.total_sucio).label("sucio"),
+            func.sum(models.RemisionDetalle.total_roto).label("roto"),   # ✅ columna correcta del modelo
+            func.sum(models.RemisionDetalle.huevo_extra).label("extra"),
+            func.sum(models.Remision.total_huevos).label("total_huevos"),
+            func.sum(models.Remision.cajas).label("cajas"),
+            func.sum(models.Remision.cubetas).label("cubetas"),
+            func.sum(models.Remision.cubetas_sobrantes).label("cubetas_sobrantes"),
+        )
+        .join(models.Remision, models.Remision.id == models.RemisionDetalle.remision_id)
+        .filter(models.Remision.fecha == fecha)
+    )
 
     if modulo_id:
         q = q.filter(models.RemisionDetalle.modulo_id == modulo_id)
 
     return q.one()
-
-
