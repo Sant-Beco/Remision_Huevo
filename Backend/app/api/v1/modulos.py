@@ -1,7 +1,7 @@
 # app/routers/modulos.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from .. import schemas, schemas, database
+from ... import schemas, schemas, database
 
 router = APIRouter(prefix="/modulos", tags=["modulos"])
 

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from app.routers import remisiones, modulos, galpones
+from Backend.app.api.v1 import galpones, modulos
+from Backend.app.api.v1 import remisiones
 from app.database import Base, engine
 
 # Crear tablas en la BD
