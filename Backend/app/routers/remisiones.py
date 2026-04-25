@@ -6,17 +6,32 @@ from app import schemas, database, crud
 
 router = APIRouter(prefix="/remisiones", tags=["remisiones"])
 
+
 # 🔹 Crear remisión
 @router.post("/", response_model=schemas.Remision, status_code=status.HTTP_201_CREATED)
-def create_remision(remision: schemas.RemisionCreate, db: Session = Depends(database.get_db)):
+def create_remision(
+    remision: schemas.RemisionCreate,
+    db: Session = Depends(database.get_db),
+):
     return crud.create_remision(db, remision)
 
-# 🔹 Obtener resumen diario (mover arriba para evitar conflicto con /{id})
+
+# 🔹 Listar remisiones  ← FIX: endpoint faltante
+@router.get("/", response_model=list[schemas.Remision])
+def list_remisiones(
+    skip: int = Query(default=0, ge=0, description="Registros a omitir"),
+    limit: int = Query(default=100, ge=1, le=500, description="Máximo de registros"),
+    db: Session = Depends(database.get_db),
+):
+    return crud.list_remisiones(db, skip=skip, limit=limit)
+
+
+# 🔹 Resumen diario — DEBE ir antes de /{remision_id} para evitar conflicto de ruta
 @router.get("/summary", response_model=schemas.DailySummary)
 def daily_summary(
     fecha: str = Query(..., description="Fecha en formato YYYY-MM-DD"),
     modulo_id: int | None = Query(default=None, description="Filtrar por módulo"),
-    db: Session = Depends(database.get_db)
+    db: Session = Depends(database.get_db),
 ):
     try:
         d = datetime.fromisoformat(fecha).date()
@@ -32,8 +47,9 @@ def daily_summary(
         total_huevos=result.total_huevos or 0,
         cajas=result.cajas or 0,
         cubetas=result.cubetas or 0,
-        cubetas_sobrantes=result.cubetas_sobrantes or 0
+        cubetas_sobrantes=result.cubetas_sobrantes or 0,
     )
+
 
 # 🔹 Obtener remisión por ID
 @router.get("/{remision_id}", response_model=schemas.Remision)
@@ -43,22 +59,23 @@ def get_remision(remision_id: int, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=404, detail="Remisión no encontrada")
     return rem
 
+
 # 🔹 Actualizar remisión
 @router.put("/{remision_id}", response_model=schemas.Remision)
-def update_remision(remision_id: int, remision: schemas.RemisionCreate, db: Session = Depends(database.get_db)):
+def update_remision(
+    remision_id: int,
+    remision: schemas.RemisionCreate,
+    db: Session = Depends(database.get_db),
+):
     db_rem = crud.update_remision(db, remision_id, remision)
     if not db_rem:
         raise HTTPException(status_code=404, detail="Remisión no encontrada")
     return db_rem
 
-# 🔹 Eliminar remisión
+
+# 🔹 Eliminar remisión  — FIX: HTTP 204 no envía body; return vacío
 @router.delete("/{remision_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_remision(remision_id: int, db: Session = Depends(database.get_db)):
     success = crud.delete_remision(db, remision_id)
     if not success:
         raise HTTPException(status_code=404, detail="Remisión no encontrada")
-    return {"message": f"Remisión {remision_id} eliminada"}
-
-
-
-    

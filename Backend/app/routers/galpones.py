@@ -1,11 +1,9 @@
+# app/routers/galpones.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .. import models, schemas, database
 
-router = APIRouter(
-    prefix="/galpones",
-    tags=["galpones"]
-)
+router = APIRouter(prefix="/galpones", tags=["galpones"])
 
 
 # Crear galpón
@@ -14,7 +12,7 @@ def create_galpon(galpon: schemas.GalponCreate, db: Session = Depends(database.g
     modulo = db.query(models.Modulo).filter(models.Modulo.id == galpon.modulo_id).first()
     if not modulo:
         raise HTTPException(status_code=400, detail="El módulo especificado no existe")
-    db_galpon = models.Galpon(**galpon.dict())
+    db_galpon = models.Galpon(**galpon.model_dump())  # FIX: .dict() → .model_dump()
     db.add(db_galpon)
     db.commit()
     db.refresh(db_galpon)
@@ -38,7 +36,11 @@ def get_galpon(galpon_id: int, db: Session = Depends(database.get_db)):
 
 # Actualizar galpón
 @router.put("/{galpon_id}", response_model=schemas.Galpon)
-def update_galpon(galpon_id: int, galpon_data: schemas.GalponCreate, db: Session = Depends(database.get_db)):
+def update_galpon(
+    galpon_id: int,
+    galpon_data: schemas.GalponCreate,
+    db: Session = Depends(database.get_db),
+):
     galpon = db.query(models.Galpon).filter(models.Galpon.id == galpon_id).first()
     if not galpon:
         raise HTTPException(status_code=404, detail="Galpón no encontrado")
@@ -47,7 +49,7 @@ def update_galpon(galpon_id: int, galpon_data: schemas.GalponCreate, db: Session
     if not modulo:
         raise HTTPException(status_code=400, detail="El módulo especificado no existe")
 
-    for key, value in galpon_data.dict().items():
+    for key, value in galpon_data.model_dump().items():  # FIX: .dict() → .model_dump()
         setattr(galpon, key, value)
 
     db.commit()
@@ -56,12 +58,10 @@ def update_galpon(galpon_id: int, galpon_data: schemas.GalponCreate, db: Session
 
 
 # Eliminar galpón
-@router.delete("/{galpon_id}")
+@router.delete("/{galpon_id}", status_code=204)
 def delete_galpon(galpon_id: int, db: Session = Depends(database.get_db)):
     galpon = db.query(models.Galpon).filter(models.Galpon.id == galpon_id).first()
     if not galpon:
         raise HTTPException(status_code=404, detail="Galpón no encontrado")
-
     db.delete(galpon)
     db.commit()
-    return {"message": "Galpón eliminado correctamente"}

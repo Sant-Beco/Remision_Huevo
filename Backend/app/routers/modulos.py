@@ -1,16 +1,15 @@
+# app/routers/modulos.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from .. import models, schemas, database
 
-router = APIRouter(
-    prefix="/modulos",
-    tags=["modulos"]
-)
+router = APIRouter(prefix="/modulos", tags=["modulos"])
+
 
 # Crear módulo
 @router.post("/", response_model=schemas.Modulo)
 def create_modulo(modulo: schemas.ModuloCreate, db: Session = Depends(database.get_db)):
-    db_modulo = models.Modulo(**modulo.dict())
+    db_modulo = models.Modulo(**modulo.model_dump())  # FIX: .dict() → .model_dump()
     db.add(db_modulo)
     db.commit()
     db.refresh(db_modulo)
@@ -34,12 +33,16 @@ def get_modulo(modulo_id: int, db: Session = Depends(database.get_db)):
 
 # Actualizar módulo
 @router.put("/{modulo_id}", response_model=schemas.Modulo)
-def update_modulo(modulo_id: int, modulo_data: schemas.ModuloCreate, db: Session = Depends(database.get_db)):
+def update_modulo(
+    modulo_id: int,
+    modulo_data: schemas.ModuloCreate,
+    db: Session = Depends(database.get_db),
+):
     modulo = db.query(models.Modulo).filter(models.Modulo.id == modulo_id).first()
     if not modulo:
         raise HTTPException(status_code=404, detail="Módulo no encontrado")
 
-    for key, value in modulo_data.dict().items():
+    for key, value in modulo_data.model_dump().items():  # FIX: .dict() → .model_dump()
         setattr(modulo, key, value)
 
     db.commit()
@@ -48,12 +51,10 @@ def update_modulo(modulo_id: int, modulo_data: schemas.ModuloCreate, db: Session
 
 
 # Eliminar módulo
-@router.delete("/{modulo_id}")
+@router.delete("/{modulo_id}", status_code=204)
 def delete_modulo(modulo_id: int, db: Session = Depends(database.get_db)):
     modulo = db.query(models.Modulo).filter(models.Modulo.id == modulo_id).first()
     if not modulo:
         raise HTTPException(status_code=404, detail="Módulo no encontrado")
-
     db.delete(modulo)
     db.commit()
-    return {"message": "Módulo eliminado correctamente"}
