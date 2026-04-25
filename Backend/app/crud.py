@@ -3,14 +3,14 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException
-from app import models, schemas
+from app import schemas, schemas
 
 
 # -----------------------------
 # Módulos y Galpones
 # -----------------------------
 def create_modulo(db: Session, modulo: schemas.ModuloCreate):
-    db_mod = models.Modulo(**modulo.model_dump())  # FIX: .dict() → .model_dump() (Pydantic v2)
+    db_mod = schemas.Modulo(**modulo.model_dump())  # FIX: .dict() → .model_dump() (Pydantic v2)
     db.add(db_mod)
     db.commit()
     db.refresh(db_mod)
@@ -18,10 +18,10 @@ def create_modulo(db: Session, modulo: schemas.ModuloCreate):
 
 
 def create_galpon(db: Session, galpon: schemas.GalponCreate):
-    mod = db.query(models.Modulo).filter(models.Modulo.id == galpon.modulo_id).first()
+    mod = db.query(schemas.Modulo).filter(schemas.Modulo.id == galpon.modulo_id).first()
     if not mod:
         raise HTTPException(status_code=400, detail="Módulo no existe")
-    db_g = models.Galpon(**galpon.model_dump())  # FIX: .dict() → .model_dump() (Pydantic v2)
+    db_g = schemas.Galpon(**galpon.model_dump())  # FIX: .dict() → .model_dump() (Pydantic v2)
     db.add(db_g)
     db.commit()
     db.refresh(db_g)
@@ -29,11 +29,11 @@ def create_galpon(db: Session, galpon: schemas.GalponCreate):
 
 
 def list_modulos(db: Session):
-    return db.query(models.Modulo).all()
+    return db.query(schemas.Modulo).all()
 
 
 def list_galpones(db: Session):
-    return db.query(models.Galpon).all()
+    return db.query(schemas.Galpon).all()
 
 
 # -----------------------------
@@ -43,7 +43,7 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
     if not remision.detalles or len(remision.detalles) == 0:
         raise HTTPException(status_code=400, detail="La remisión debe tener al menos un detalle")
 
-    db_rem = models.Remision(
+    db_rem = schemas.Remision(
         fecha=remision.fecha,
         fecha_produccion=remision.fecha_produccion,
         observaciones=remision.observaciones,
@@ -58,7 +58,7 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
     total_incubable = total_sucio = total_roto = total_extra = total_huevos = 0
 
     for d in remision.detalles:
-        gal = db.query(models.Galpon).filter(models.Galpon.id == d.galpon_id).first()
+        gal = db.query(schemas.Galpon).filter(schemas.Galpon.id == d.galpon_id).first()
         if not gal:
             db.rollback()
             raise HTTPException(status_code=400, detail=f"Galpón {d.galpon_id} no existe")
@@ -70,7 +70,7 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
                 detail=f"Galpón {d.galpon_id} no pertenece al módulo {d.modulo_id}",
             )
 
-        detalle = models.RemisionDetalle(
+        detalle = schemas.RemisionDetalle(
             remision_id=db_rem.id,
             galpon_id=d.galpon_id,
             modulo_id=gal.modulo_id,
@@ -107,8 +107,8 @@ def create_remision(db: Session, remision: schemas.RemisionCreate):
 
 def list_remisiones(db: Session, skip: int = 0, limit: int = 100):
     return (
-        db.query(models.Remision)
-        .options(joinedload(models.Remision.detalles))
+        db.query(schemas.Remision)
+        .options(joinedload(schemas.Remision.detalles))
         .offset(skip)
         .limit(limit)
         .all()
@@ -117,9 +117,9 @@ def list_remisiones(db: Session, skip: int = 0, limit: int = 100):
 
 def get_remision(db: Session, remision_id: int):
     return (
-        db.query(models.Remision)
-        .options(joinedload(models.Remision.detalles))
-        .filter(models.Remision.id == remision_id)
+        db.query(schemas.Remision)
+        .options(joinedload(schemas.Remision.detalles))
+        .filter(schemas.Remision.id == remision_id)
         .first()
     )
 
@@ -137,18 +137,18 @@ def update_remision(db: Session, remision_id: int, remision: schemas.RemisionCre
     db_rem.numero_sello     = remision.numero_sello
 
     # Borrar detalles anteriores para reemplazarlos
-    db.query(models.RemisionDetalle).filter(
-        models.RemisionDetalle.remision_id == db_rem.id
+    db.query(schemas.RemisionDetalle).filter(
+        schemas.RemisionDetalle.remision_id == db_rem.id
     ).delete()
 
     total_incubable = total_sucio = total_roto = total_extra = total_huevos = 0
 
     for d in remision.detalles:
-        gal = db.query(models.Galpon).filter(models.Galpon.id == d.galpon_id).first()
+        gal = db.query(schemas.Galpon).filter(schemas.Galpon.id == d.galpon_id).first()
         if not gal:
             raise HTTPException(status_code=400, detail=f"Galpón {d.galpon_id} no existe")
 
-        detalle = models.RemisionDetalle(
+        detalle = schemas.RemisionDetalle(
             remision_id=db_rem.id,
             galpon_id=d.galpon_id,
             modulo_id=gal.modulo_id,
@@ -198,34 +198,34 @@ def get_daily_summary(db: Session, fecha, modulo_id: int | None = None):
     # --- Totales por tipo de huevo (desde detalles) ---
     q_det = (
         db.query(
-            func.coalesce(func.sum(models.RemisionDetalle.huevo_incubable), 0).label("incubable"),
-            func.coalesce(func.sum(models.RemisionDetalle.total_sucio), 0).label("sucio"),
-            func.coalesce(func.sum(models.RemisionDetalle.total_roto), 0).label("roto"),
-            func.coalesce(func.sum(models.RemisionDetalle.huevo_extra), 0).label("extra"),
+            func.coalesce(func.sum(schemas.RemisionDetalle.huevo_incubable), 0).label("incubable"),
+            func.coalesce(func.sum(schemas.RemisionDetalle.total_sucio), 0).label("sucio"),
+            func.coalesce(func.sum(schemas.RemisionDetalle.total_roto), 0).label("roto"),
+            func.coalesce(func.sum(schemas.RemisionDetalle.huevo_extra), 0).label("extra"),
         )
-        .join(models.Remision, models.Remision.id == models.RemisionDetalle.remision_id)
-        .filter(models.Remision.fecha == fecha)
+        .join(schemas.Remision, schemas.Remision.id == schemas.RemisionDetalle.remision_id)
+        .filter(schemas.Remision.fecha == fecha)
     )
     if modulo_id:
-        q_det = q_det.filter(models.RemisionDetalle.modulo_id == modulo_id)
+        q_det = q_det.filter(schemas.RemisionDetalle.modulo_id == modulo_id)
     det = q_det.one()
 
     # --- Totales de cabecera (desde remisiones, sin JOIN a detalles) ---
     q_rem = (
         db.query(
-            func.coalesce(func.sum(models.Remision.total_huevos), 0).label("total_huevos"),
-            func.coalesce(func.sum(models.Remision.cajas), 0).label("cajas"),
-            func.coalesce(func.sum(models.Remision.cubetas), 0).label("cubetas"),
-            func.coalesce(func.sum(models.Remision.cubetas_sobrantes), 0).label("cubetas_sobrantes"),
+            func.coalesce(func.sum(schemas.Remision.total_huevos), 0).label("total_huevos"),
+            func.coalesce(func.sum(schemas.Remision.cajas), 0).label("cajas"),
+            func.coalesce(func.sum(schemas.Remision.cubetas), 0).label("cubetas"),
+            func.coalesce(func.sum(schemas.Remision.cubetas_sobrantes), 0).label("cubetas_sobrantes"),
         )
-        .filter(models.Remision.fecha == fecha)
+        .filter(schemas.Remision.fecha == fecha)
     )
     if modulo_id:
         # Filtrar remisiones que tengan al menos un detalle del módulo pedido
         q_rem = q_rem.filter(
-            models.Remision.id.in_(
-                db.query(models.RemisionDetalle.remision_id)
-                .filter(models.RemisionDetalle.modulo_id == modulo_id)
+            schemas.Remision.id.in_(
+                db.query(schemas.RemisionDetalle.remision_id)
+                .filter(schemas.RemisionDetalle.modulo_id == modulo_id)
             )
         )
     rem = q_rem.one()
