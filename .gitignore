@@ -55,3 +55,14 @@ docker-compose.override.yml
 
 # --- Git ---
 *.orig
+
+# Entorno
+venv/
+__pycache__/
+*.pyc
+
+# Credenciales
+.env
+
+# Base de datos
+*.sqlite3
