@@ -24,7 +24,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.schemas.remision import EstadoRemision, MotivoPendiente
+from app.models.remision import EstadoRemision, MotivoPendiente
 from app.schemas.granja import GalponSummary, LoteSummary
 from app.schemas.user import UserSummary
 
