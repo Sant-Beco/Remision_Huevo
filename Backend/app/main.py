@@ -26,7 +26,7 @@ from app.database import verificar_conexion
 #   from app.api.v1 import remisiones, modulos, galpones
 #
 # Mientras tanto, si todavía tienes la carpeta como routers/:
-from app.routers import remisiones, modulos, galpones
+from app.routers import remisiones, modulos, galpones, granjas
 
 
 # ─────────────────────────────────────────
@@ -155,6 +155,7 @@ def health_check():
 app.include_router(remisiones.router, prefix="/api/v1")
 app.include_router(modulos.router,    prefix="/api/v1")
 app.include_router(galpones.router,   prefix="/api/v1")
+app.include_router(granjas.router, prefix="/api/v1")
 
 #
 # ── Una vez que tengas api/v1/, reemplaza por: ──
