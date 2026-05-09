@@ -28,6 +28,7 @@ from typing import Generator
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
+from urllib.parse import quote_plus
 
 load_dotenv()
 
@@ -43,10 +44,9 @@ DB_NAME     = os.getenv("DB_NAME",     "incubantdb")
 
 # URL de conexión PostgreSQL (psycopg2 síncrono)
 DATABASE_URL = (
-    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}"
+    f"postgresql+psycopg2://{DB_USER}:{quote_plus(DB_PASSWORD)}"
     f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
-
 # ─────────────────────────────────────────
 # Engine
 # ─────────────────────────────────────────
